@@ -7,20 +7,24 @@ import requests
 import openai
 from email.mime.text import MIMEText
 
-# ==============================
+# =========================
 # OpenRouter Configuration
-# ==============================
+# =========================
 openai.api_key = os.getenv("OPENAI_API_KEY")
 openai.api_base = "https://openrouter.ai/api/v1"
+openai.api_headers = {
+    "HTTP-Referer": "https://medicine-advisor-engine.streamlit.app",
+    "X-Title": "Medicine Advisor Engine"
+}
 
-# ==============================
+# =========================
 # Load ML Model
-# ==============================
+# =========================
 model = joblib.load("model/disease_prediction_model.joblib")
 
-# ==============================
-# AI Report Generator
-# ==============================
+# =========================
+# AI Health Report
+# =========================
 def generate_report(symptoms_list, predicted_disease):
     prompt = f"""
 A patient has entered the following symptoms: {', '.join(symptoms_list)}.
@@ -34,35 +38,28 @@ Please provide a health report in clear, friendly language that explains:
 """
 
     response = openai.ChatCompletion.create(
-        model="deepseek/deepseek-r1:free",
-        messages=[
-            {"role": "user", "content": prompt}
-        ],
-        headers={
-            "HTTP-Referer": "https://yourdomain.com",
-            "X-Title": "Medicine Advisor Engine"
-        }
+        model="openai/gpt-3.5-turbo",
+        messages=[{"role": "user", "content": prompt}]
     )
 
     return response["choices"][0]["message"]["content"]
 
-# ==============================
+# =========================
 # Emergency Alert (Optional)
-# ==============================
+# =========================
 def send_emergency_alert(username, disease):
     try:
         sender_email = "youremail"
         receiver_email = "receiveremail"
 
         location = requests.get("https://ipinfo.io").json()
-        loc_text = f"Location: {location.get('city')}, {location.get('region')}, {location.get('country')}"
+        loc_text = f"{location.get('city')}, {location.get('region')}, {location.get('country')}"
 
         msg = MIMEText(f"""
 Emergency Alert!
-
 User: {username}
 Diagnosis: {disease}
-{loc_text}
+Location: {loc_text}
 """)
         msg["Subject"] = "Medical Emergency Alert"
         msg["From"] = sender_email
@@ -73,14 +70,14 @@ Diagnosis: {disease}
             server.login("sender_email", "app_password")
             server.sendmail(sender_email, receiver_email, msg.as_string())
 
-        st.success("Emergency alert sent successfully!")
+        st.success("Emergency alert sent!")
 
-    except Exception as e:
-        st.error("Emergency alert failed (runtime limitation).")
+    except:
+        st.warning("Emergency alert feature available but disabled in deployment.")
 
-# ==============================
+# =========================
 # Database Setup
-# ==============================
+# =========================
 conn = sqlite3.connect("users.db", check_same_thread=False)
 c = conn.cursor()
 
@@ -104,21 +101,21 @@ CREATE TABLE IF NOT EXISTS profiles (
 
 conn.commit()
 
-# ==============================
+# =========================
 # Disease Prediction
-# ==============================
+# =========================
 def diagnose(symptoms_list):
-    input_text = " ".join(symptoms_list).replace("_", " ").lower().strip()
-    return model.predict([input_text])[0]
+    text = " ".join(symptoms_list).replace("_", " ").lower()
+    return model.predict([text])[0]
 
-# ==============================
-# Login / Register Page
-# ==============================
+# =========================
+# Login / Register
+# =========================
 def login_page():
     st.title("Login or Register")
-    choice = st.selectbox("Select Action", ["Login", "Register"])
+    action = st.selectbox("Select Action", ["Login", "Register"])
 
-    if choice == "Register":
+    if action == "Register":
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
         name = st.text_input("Full Name")
@@ -127,19 +124,19 @@ def login_page():
         if st.button("Register"):
             try:
                 c.execute(
-                    "INSERT INTO users (username, password, name, age) VALUES (?, ?, ?, ?)",
+                    "INSERT INTO users VALUES (NULL, ?, ?, ?, ?)",
                     (username, password, name, age)
                 )
                 c.execute(
-                    "INSERT INTO profiles (username, medical_history, allergies) VALUES (?, '', '')",
+                    "INSERT INTO profiles VALUES (?, '', '')",
                     (username,)
                 )
                 conn.commit()
-                st.success("Registration successful. Please login.")
+                st.success("Registered successfully. Please login.")
             except:
                 st.error("Username already exists.")
 
-    if choice == "Login":
+    if action == "Login":
         username = st.text_input("Username")
         password = st.text_input("Password", type="password")
 
@@ -155,62 +152,54 @@ def login_page():
             else:
                 st.error("Invalid credentials.")
 
-# ==============================
+# =========================
 # Symptom Diagnostic Page
-# ==============================
+# =========================
 def symptom_diagnostic_page():
     st.title("Symptom Diagnostic Tool")
 
-    symptoms = st.text_area(
-        "Enter symptoms separated by spaces (e.g., itching skin_rash headache)"
-    )
+    symptoms = st.text_area("Enter symptoms separated by spaces")
 
     if st.button("Diagnose"):
-        symptoms_list = [s.strip().lower() for s in symptoms.split()]
+        symptoms_list = symptoms.lower().split()
         result = diagnose(symptoms_list)
-
-        st.session_state["symptoms_list"] = symptoms_list
-        st.session_state["diagnosis_result"] = result
-
+        st.session_state["symptoms"] = symptoms_list
+        st.session_state["result"] = result
         st.success(f"Predicted Disease: {result}")
 
-    if "diagnosis_result" in st.session_state:
-        result = st.session_state["diagnosis_result"]
-        symptoms_list = st.session_state["symptoms_list"]
-
+    if "result" in st.session_state:
         if st.button("Generate AI Health Report"):
             with st.spinner("Generating report..."):
-                report = generate_report(symptoms_list, result)
-                st.markdown("### Health Report")
+                report = generate_report(
+                    st.session_state["symptoms"],
+                    st.session_state["result"]
+                )
                 st.info(report)
 
-# ==============================
+# =========================
 # Profile Page
-# ==============================
+# =========================
 def profile_page():
     st.title("User Profile")
     username = st.session_state["username"]
 
-    c.execute(
-        "SELECT medical_history, allergies FROM profiles WHERE username=?",
-        (username,)
-    )
+    c.execute("SELECT medical_history, allergies FROM profiles WHERE username=?", (username,))
     profile = c.fetchone()
 
-    medical_history = st.text_area("Medical History", profile[0])
+    history = st.text_area("Medical History", profile[0])
     allergies = st.text_area("Allergies", profile[1])
 
     if st.button("Update Profile"):
         c.execute(
             "UPDATE profiles SET medical_history=?, allergies=? WHERE username=?",
-            (medical_history, allergies, username)
+            (history, allergies, username)
         )
         conn.commit()
         st.success("Profile updated.")
 
-# ==============================
+# =========================
 # Main App
-# ==============================
+# =========================
 def main():
     if "logged_in" not in st.session_state:
         st.session_state["logged_in"] = False
@@ -219,7 +208,7 @@ def main():
         login_page()
     else:
         page = st.sidebar.selectbox(
-            "Navigation",
+            "Navigate",
             ["Symptom Diagnostic", "Profile", "Logout"]
         )
 
