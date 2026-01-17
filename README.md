@@ -1,6 +1,8 @@
 # Medicine-Advisor-Engine
 AI-based Symptom Checker and Medicine Recommendation System using Machine Learning and Streamlit
 
+Live App: https://medicine-advisor-engine-hwxs6w2z36u7hng6di4ysx.streamlit.app/
+
 ## Overview
 Medicine Advisor Engine is an end-to-end Machine Learning application that predicts possible diseases based on user-entered symptoms and provides medical guidance through an interactive web interface.
 
@@ -11,7 +13,7 @@ This is not just a model — it is a full pipeline from data to deployment-style
 ## Key Features
 - User registration and login system
 - Symptom-based disease prediction using a trained ML model
-- AI-generated health reports in simple, human-readable language
+- AI-generated health reports in simple, human-readable language (LLM-powered)
 - Disease description, precautions, and recommended next steps
 - Emergency alert functionality for critical conditions
 - User profile management (medical history, allergies)
@@ -83,7 +85,6 @@ medicine-advisor-engine/
 │
 └── .gitignore
 
-
 ## How to Run Locally
 1. Clone the repository
    git clone https://github.com/your-username/medicine-advisor-engine.git
@@ -110,8 +111,8 @@ Screenshots of the application UI are available in the screenshots/ folder, show
 - The SQLite database file is excluded from the repository for security reasons
 - This project is intended for educational and demonstration purposes only
 - It does not replace professional medical advice
-- The emergency alert functionality is implemented in the application logic and can be triggered for high-risk diseases; however, a screenshot is not included due to runtime constraints.
-
+- AI-generated health reports are powered via OpenRouter using free-tier models; availability may vary
+- The emergency alert functionality is implemented in the application logic; a screenshot is not included due to runtime constraints
 
 ## Author
 Built as a hands-on Machine Learning and Data Science project to demonstrate real-world application development.
