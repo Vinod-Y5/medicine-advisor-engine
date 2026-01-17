@@ -1,4 +1,5 @@
 import streamlit as st
+import os
 import sqlite3
 import joblib
 import smtplib
@@ -8,11 +9,11 @@ import requests
 # Load the trained ML model
 model = joblib.load("model/disease_prediction_model.joblib")
 
-# OpenRouter API setup
+# Openai API setup
 client = OpenAI(
-    base_url="https://openrouter.ai/api/v1",
-    api_key="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"
+    api_key=os.getenv("OPENAI_API_KEY")
 )
+
 
 # Generate AI health report
 def generate_report(symptoms_list, predicted_disease):
@@ -30,7 +31,7 @@ Please provide a health report in clear, friendly language that explains:
             "HTTP-Referer": "https://yourdomain.com",
             "X-Title": "Symptom Checker"
         },
-        model="openai/gpt-3.5-turbo",
+        model="gpt-3.5-turbo",
         messages=[
             {"role": "user", "content": prompt}
         ]
@@ -217,4 +218,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+
 
