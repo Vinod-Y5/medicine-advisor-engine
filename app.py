@@ -30,7 +30,7 @@ Please provide a health report in clear, friendly language that explains:
             "HTTP-Referer": "https://yourdomain.com",
             "X-Title": "Symptom Checker"
         },
-        model="deepseek/deepseek-r1:free",
+        model="openai/gpt-3.5-turbo",
         messages=[
             {"role": "user", "content": prompt}
         ]
@@ -217,3 +217,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
